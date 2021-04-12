@@ -65,15 +65,8 @@ jobs:
       # as this is a good way of determining if there’s an issue with our CDK: 
       # some errors won’t be apparent until you try to synthesize them.
       - name: CDK synth
-        env:
-          AWS_REGION: 'ap-south-1'
-          AWS_TARGET_ACCOUNT: '455180012233'
         run: |
-          # Technically this should be a secret.
-          echo "deployment account : ${AWS_TARGET_ACCOUNT}" 
-          echo "deployment region : ${AWS_REGION}"
-          
-          cdk synth -region ${AWS_REGION} -targetAccount ${AWS_TARGET_ACCOUNT}
+          cdk synth
       
       # Runs a single command using the runners shell
       - name: Run a one-line script
