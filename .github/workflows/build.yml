@@ -56,7 +56,7 @@ jobs:
       # Install project dependencies
       - name: Install NPM modules and Build project
         run: |
-          npm ci
+          npm i
           npm run build
           
       # Synthesize the CDK stack, which, as you’ll recall, 
