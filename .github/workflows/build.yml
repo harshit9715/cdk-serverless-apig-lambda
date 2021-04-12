@@ -73,7 +73,7 @@ jobs:
           echo "deployment account : ${AWS_TARGET_ACCOUNT}" 
           echo "deployment region : ${AWS_REGION}"
           
-          # cdk synth -region ${AWS_REGION} -targetAccount ${AWS_TARGET_ACCOUNT}
+          cdk synth -region ${AWS_REGION} -targetAccount ${AWS_TARGET_ACCOUNT}
       
       # Runs a single command using the runners shell
       - name: Run a one-line script
