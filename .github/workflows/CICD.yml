@@ -54,7 +54,7 @@ jobs:
           role-session-name: ec2-cdk-session
       
       - name: Install CDK
-        run: npm install -g aws-cdk
+        run: sudo npm install -g aws-cdk
       # Synthesize the CDK stack, which, as you’ll recall, 
       # requires AWS credentials to perform a Route53 HostedZone lookup. 
       # We want to synthesize the CDK stack every time we push a change, 
