@@ -31,6 +31,7 @@ jobs:
         run: |
           npm i
           npm run build
+          ls -la
   
   DeployDev:
     name: Deploy to Dev 
@@ -61,7 +62,9 @@ jobs:
       # as this is a good way of determining if there’s an issue with our CDK: 
       # some errors won’t be apparent until you try to synthesize them.
       - name: CDK synth
-        run: cdk synth
+        run: |
+          ls -la
+          cdk synth
       - name: Deploy CDK
         run: |
           echo I am deploying! 
