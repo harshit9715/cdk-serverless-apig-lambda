@@ -25,9 +25,6 @@ jobs:
           restore-keys: |
             ${{ runner.OS }}-node-
             ${{ runner.OS }}-
-      - name: Install CDK
-        run: |
-          npm install -g aws-cdk
       
       # Install project dependencies
       - name: Install NPM modules and Build project
@@ -64,7 +61,10 @@ jobs:
           role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
           role-duration-seconds: 1200
           role-session-name: ec2-cdk-session
-
+      
+      - name: Install CDK
+        run: |
+          npm install -g aws-cdk
       - name: Deploy CDK
         run: |
           echo I am deploying! 
@@ -90,7 +90,11 @@ jobs:
           # role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
           role-duration-seconds: 1200
           role-session-name: ec2-cdk-session
-          
+      
+      - name: Install CDK
+        run: |
+          npm install -g aws-cdk
+      
       - name: Deploy CDK
         run: |
           echo I am deploying!
@@ -116,6 +120,11 @@ jobs:
           role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
           role-duration-seconds: 1200
           role-session-name: ec2-cdk-session
+          
+      - name: Install CDK
+        run: |
+          npm install -g aws-cdk
+      
       - name: Deploy CDK
         run: |
           echo I am deploying!
