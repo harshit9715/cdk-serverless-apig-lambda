@@ -32,7 +32,24 @@ jobs:
           npm i
           npm run build
           ls -la
-  
+      
+      - name: Install CDK
+        run: sudo npm install -g aws-cdk
+      # Synthesize the CDK stack, which, as you’ll recall, 
+      # requires AWS credentials to perform a Route53 HostedZone lookup. 
+      # We want to synthesize the CDK stack every time we push a change, 
+      # as this is a good way of determining if there’s an issue with our CDK: 
+      # some errors won’t be apparent until you try to synthesize them.
+      - name: CDK synth
+        run: |
+          ls -la
+          cdk synth
+      - uses: actions/upload-artifact@v2
+        with:
+          name: cdk-artifact
+          path: cdk.out
+          retention-days: 5
+
   DeployDev:
     name: Deploy to Dev 
     if: github.event_name == 'pull_request'
@@ -43,6 +60,10 @@ jobs:
       url: 'http://dev.myapp.com'
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: cdk-artifact
+          path: cdk.out
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -57,15 +78,7 @@ jobs:
       
       - name: Install CDK
         run: sudo npm install -g aws-cdk
-      # Synthesize the CDK stack, which, as you’ll recall, 
-      # requires AWS credentials to perform a Route53 HostedZone lookup. 
-      # We want to synthesize the CDK stack every time we push a change, 
-      # as this is a good way of determining if there’s an issue with our CDK: 
-      # some errors won’t be apparent until you try to synthesize them.
-      - name: CDK synth
-        run: |
-          ls -la
-          cdk synth
+        
       - name: Deploy CDK
         run: |
           echo I am deploying! 
