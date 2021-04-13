@@ -44,7 +44,7 @@ jobs:
         run: |
           ls -la
           cdk synth
-          cdk bootstrap
+          
       - uses: actions/upload-artifact@v2
         with:
           name: cdk-artifact
@@ -109,6 +109,7 @@ jobs:
         run: npm install -g aws-cdk
       - name: Deploy CDK
         run: |
+          cdk bootstrap
           echo I am deploying! 
           # cdk deploy --app ./cdk.out --require-approval never "*"
             
