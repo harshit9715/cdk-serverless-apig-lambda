@@ -5,13 +5,25 @@ import cdk = require('@aws-cdk/core');
 export class ApiLambdaStack extends cdk.Stack {
   constructor(app: cdk.App, id: string) {
     super(app, id);
+    // GET the layer ARN from SignalFX https://github.com/signalfx/lambda-layer-versions/blob/master/node/NODE.md for the desired region you are deploying to.
+    // I have added us-east-1, which is my deployment region
+
+    const signalFX_Layer = lambda.LayerVersion.fromLayerVersionArn(this, 'layerversion', 'arn:aws:lambda:us-east-1:254067382080:layer:signalfx-lambda-nodejs-wrapper:21');
 
     const createOne = new lambda.Function(this, 'createItemFunction', {
       code: new lambda.AssetCode('src'),
+      functionName: 'createItemFunction',
       handler: 'create.handler',
+      layers: [signalFX_Layer],
       runtime: lambda.Runtime.NODEJS_10_X,
       environment: {
         ITEM_NAME: 'cargo',
+
+        // SignalFX env vars (I am hard-coding mine, please use process.env.VAR_NAME for adding your values)
+        SIGNALFX_ACCESS_TOKEN: process.env.SIGNALFX_ACCESS_TOKEN,
+        SIGNALFX_ENDPOINT_URL: process.env.SIGNALFX_ENDPOINT_URL,
+        SIGNALFX_METRICS_URL: process.env.SIGNALFX_METRICS_URL,
+
       }
     });
 
