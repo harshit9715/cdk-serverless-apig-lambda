@@ -8,6 +8,10 @@
 npm i -g aws-cdk
 ```
 
+## Configure environment
+
+Don't forget to configure environment variable through a .env file and create variable refrences in config.ts file.
+
 ## Setup and run
 
 ```bash
