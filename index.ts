@@ -8,7 +8,7 @@ export class ApiLambdaStack extends cdk.Stack {
     // GET the layer ARN from SignalFX https://github.com/signalfx/lambda-layer-versions/blob/master/node/NODE.md for the desired region you are deploying to.
     // I have added us-east-1, which is my deployment region
 
-    const signalFX_Layer = lambda.LayerVersion.fromLayerVersionArn(this, 'layerversion', 'arn:aws:lambda:us-east-1:254067382080:layer:signalfx-lambda-nodejs-wrapper:21');
+    const signalFX_Layer = lambda.LayerVersion.fromLayerVersionArn(this, 'layerversion', 'arn:aws:lambda:ap-south-1:254067382080:layer:signalfx-lambda-nodejs-wrapper:20');
 
     const createOne = new lambda.Function(this, 'createItemFunction', {
       code: new lambda.AssetCode('src'),
