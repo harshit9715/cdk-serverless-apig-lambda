@@ -10,8 +10,8 @@ export class ApiLambdaStack extends cdk.Stack {
     // I have added us-east-1, which is my deployment region
 
     const signalFX_Layer = lambda.LayerVersion.fromLayerVersionArn(this, 'layerversion', 'arn:aws:lambda:ap-south-1:254067382080:layer:signalfx-lambda-nodejs-wrapper:20');
-    const secureStringToken = ssm.StringParameter.valueForSecureStringParameter(
-      this, 'SIGNALFX_ACCESS_TOKEN', 1); 
+    const stringToken = ssm.StringParameter.valueForStringParameter(
+      this, 'SIGNALFX_ACCESS_TOKEN', 1);
     const createOne = new lambda.Function(this, 'createItemFunction', {
       code: new lambda.AssetCode('src'),
       functionName: 'createItemFunction',
@@ -22,7 +22,7 @@ export class ApiLambdaStack extends cdk.Stack {
         ITEM_NAME: 'cargo',
 
         // SignalFX env vars (I am hard-coding mine, please use process.env.VAR_NAME for adding your values)
-        SIGNALFX_ACCESS_TOKEN: secureStringToken,
+        SIGNALFX_ACCESS_TOKEN: stringToken,
         SIGNALFX_ENDPOINT_URL: process.env.SIGNALFX_ENDPOINT_URL,
         SIGNALFX_METRICS_URL: process.env.SIGNALFX_METRICS_URL,
 
