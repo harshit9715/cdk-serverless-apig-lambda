@@ -8,8 +8,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  Build:
+  DeployStage:
     runs-on: ubuntu-latest
+    environment: 
+      name: Staging
     steps:
       - uses: actions/checkout@v2
       
@@ -29,8 +31,76 @@ jobs:
       # Install project dependencies
       - name: Install NPM modules and Build project
         run: |
-          npm config set //SIGNALFX_ENDPOINT_URL=${{ secrets.SIGNALFX_ENDPOINT_URL }}
-          npm config set //SIGNALFX_METRICS_URL=${{ secrets.SIGNALFX_METRICS_URL }}
+          npm i
+          rm -rf cdk.out
+          npm run build
+      
+      - name: Install CDK
+        run: sudo npm install -g aws-cdk
+      # Synthesize the CDK stack, which, as you’ll recall, 
+      # requires AWS credentials to perform a Route53 HostedZone lookup. 
+      # We want to synthesize the CDK stack every time we push a change, 
+      # as this is a good way of determining if there’s an issue with our CDK: 
+      # some errors won’t be apparent until you try to synthesize them.
+      - name: CDK synth
+        run: |
+          cdk synth
+          
+      - uses: actions/upload-artifact@v2
+        with:
+          name: cdk-artifact
+          path: cdk.out
+          retention-days: 5
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-skip-session-tagging: true
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{secrets.AWS_REGION}}
+          role-to-assume: ${{secrets.AWS_ROLE_TO_ASSUME}}
+          role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
+          role-duration-seconds: 1200
+          role-session-name: ec2-cdk-session
+        
+      - name: Deploy CDK
+        run: | 
+          npm i
+          npm run build
+          cdk bootstrap 
+          cdk deploy --app ./cdk.out --require-approval never "*"
+          #cdk destroy
+    env:
+      password: ${{ secrets.PASSWORD }}
+      SIGNALFX_ENDPOINT_URL: ${{ secrets.SIGNALFX_ENDPOINT_URL }}
+      SIGNALFX_METRICS_URL: ${{ secrets.SIGNALFX_METRICS_URL }}
+      SIGNALFX_ACCESS_TOKEN: ${{ secrets.SIGNALFX_ACCESS_TOKEN }}   
+      
+  DeployProd:
+    needs: [DeployStage]
+    runs-on: ubuntu-latest
+    environment: 
+      name: prod
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14.x'
+      - name: Cache Node.js modules
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-node-
+            ${{ runner.OS }}-
+      
+      # Install project dependencies
+      - name: Install NPM modules and Build project
+        run: |
           npm i
           npm run build
       
@@ -51,20 +121,6 @@ jobs:
           path: cdk.out
           retention-days: 5
 
-  DeployDev:
-    name: Deploy to Dev 
-    if: github.event_name == 'pull_request'
-    needs: [Build]
-    runs-on: ubuntu-latest
-    environment: 
-      name: Development
-      url: 'http://dev.myapp.com'
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
-        with:
-          name: cdk-artifact
-          path: cdk.out
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -72,71 +128,20 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{secrets.AWS_REGION}}
-          role-to-assume: ${{secrets.AWS_ROLE_TO_ASSUME}}
-          role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
+          #role-to-assume: ${{secrets.AWS_ROLE_TO_ASSUME}}
+          #role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
           role-duration-seconds: 1200
           role-session-name: ec2-cdk-session
-      
-      - name: Install CDK
-        run: sudo npm install -g aws-cdk
         
       - name: Deploy CDK
         run: |
-          echo I am deploying! 
+          npm i
+          rm -rf cdk.out
+          npm run build
+          cdk bootstrap 
           cdk deploy --app ./cdk.out --require-approval never "*"
-          cdk destroy
-  DeployStaging:
-    name: Deploy to Staging 
-    if: github.event.ref == 'refs/heads/main'
-    needs: [Build]
-    runs-on: ubuntu-latest
-    environment: 
-      name: Staging
-      url: 'http://test.myapp.com'
-    steps:
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          role-skip-session-tagging: true
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{secrets.AWS_REGION}}
-          role-to-assume: ${{secrets.AWS_ROLE_TO_ASSUME}}
-          # role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
-          role-duration-seconds: 1200
-          role-session-name: ec2-cdk-session
-      
-      - name: Install CDK
-        run: npm install -g aws-cdk
-      - name: Deploy CDK
-        run: |
-          cdk bootstrap
-          echo I am deploying! 
-          # cdk deploy --app ./cdk.out --require-approval never "*"
-            
-  DeployProd:
-    name: Deploy to Production 
-    needs: [DeployStaging]
-    runs-on: ubuntu-latest
-    environment: 
-      name: Production
-      url: 'http://www.myapp.com'
-    steps:
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          role-skip-session-tagging: true
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{secrets.AWS_REGION}}
-          role-to-assume: ${{secrets.AWS_ROLE_TO_ASSUME}}
-          role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
-          role-duration-seconds: 1200
-          role-session-name: ec2-cdk-session
-          
-      - name: Install CDK
-        run: npm install -g aws-cdk
-      - name: Deploy CDK
-        run: |
-          echo I am deploying! 
-          # cdk deploy --app ./cdk.out --require-approval never "*"
+          #cdk destroy
+    env:
+      SIGNALFX_ENDPOINT_URL: ${{ secrets.SIGNALFX_ENDPOINT_URL }}
+      SIGNALFX_METRICS_URL: ${{ secrets.SIGNALFX_METRICS_URL }}
+      SIGNALFX_ACCESS_TOKEN: ${{ secrets.SIGNALFX_ACCESS_TOKEN }}
