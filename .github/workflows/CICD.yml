@@ -67,6 +67,7 @@ jobs:
       - name: Deploy CDK
         run: | 
           npm i
+          rm -rf cdk.out
           npm run build
           cdk bootstrap 
           cdk deploy --app ./cdk.out --require-approval never "*"
