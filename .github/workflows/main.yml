@@ -1,0 +1,74 @@
+name: CI + CD
+
+on:
+  repository_dispatch:
+    types: deploy-prod
+
+jobs:
+  DeployProd:
+    runs-on: ubuntu-latest
+    environment: 
+      name: prod
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14.x'
+      - name: Cache Node.js modules
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-node-
+            ${{ runner.OS }}-
+      
+      # Install project dependencies
+      - name: Install NPM modules and Build project
+        run: |
+          npm i
+          npm run build
+      
+      - name: Install CDK
+        run: sudo npm install -g aws-cdk
+      # Synthesize the CDK stack, which, as you’ll recall, 
+      # requires AWS credentials to perform a Route53 HostedZone lookup. 
+      # We want to synthesize the CDK stack every time we push a change, 
+      # as this is a good way of determining if there’s an issue with our CDK: 
+      # some errors won’t be apparent until you try to synthesize them.
+      - name: CDK synth
+        run: |
+          cdk synth
+          
+      - uses: actions/upload-artifact@v2
+        with:
+          name: cdk-artifact
+          path: cdk.out
+          retention-days: 5
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-skip-session-tagging: true
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{secrets.AWS_REGION}}
+          #role-to-assume: ${{secrets.AWS_ROLE_TO_ASSUME}}
+          #role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
+          role-duration-seconds: 1200
+          role-session-name: ec2-cdk-session
+        
+      - name: Deploy CDK
+        run: |
+          npm i
+          rm -rf cdk.out
+          npm run build
+          cdk bootstrap 
+          cdk deploy --app ./cdk.out --require-approval never "*"
+          #cdk destroy
+    env:
+      SIGNALFX_ENDPOINT_URL: ${{ secrets.SIGNALFX_ENDPOINT_URL }}
+      SIGNALFX_METRICS_URL: ${{ secrets.SIGNALFX_METRICS_URL }}
+      SIGNALFX_ACCESS_TOKEN: ${{ secrets.SIGNALFX_ACCESS_TOKEN }}
