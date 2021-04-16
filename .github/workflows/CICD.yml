@@ -29,7 +29,6 @@ jobs:
       # Install project dependencies
       - name: Install NPM modules and Build project
         run: |
-          npm config set //SIGNALFX_ACCESS_TOKEN=${{ secrets.SIGNALFX_ACCESS_TOKEN }}
           npm config set //SIGNALFX_ENDPOINT_URL=${{ secrets.SIGNALFX_ENDPOINT_URL }}
           npm config set //SIGNALFX_METRICS_URL=${{ secrets.SIGNALFX_METRICS_URL }}
           npm i
