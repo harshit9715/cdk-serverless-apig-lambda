@@ -83,7 +83,7 @@ jobs:
           subject: Deploy CDK App to Prod ?
           body: Job completed ${{job.status}}
           to: harshit9715@gmail.com
-          from: Me
+          from: harshit9715@gmail.com
     env:
       password: ${{ secrets.PASSWORD }}
       SIGNALFX_ENDPOINT_URL: ${{ secrets.SIGNALFX_ENDPOINT_URL }}
