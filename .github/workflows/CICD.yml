@@ -4,7 +4,7 @@ on:
   push:
     branches: [ master ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -29,9 +29,11 @@ jobs:
       # Install project dependencies
       - name: Install NPM modules and Build project
         run: |
+          npm config set //SIGNALFX_ACCESS_TOKEN=${{ secrets.SIGNALFX_ACCESS_TOKEN }}
+          npm config set //SIGNALFX_ENDPOINT_URL=${{ secrets.SIGNALFX_ENDPOINT_URL }}
+          npm config set //SIGNALFX_METRICS_URL=${{ secrets.SIGNALFX_METRICS_URL }}
           npm i
           npm run build
-          ls -la
       
       - name: Install CDK
         run: sudo npm install -g aws-cdk
@@ -42,7 +44,6 @@ jobs:
       # some errors won’t be apparent until you try to synthesize them.
       - name: CDK synth
         run: |
-          ls -la
           cdk synth
           
       - uses: actions/upload-artifact@v2
@@ -83,7 +84,8 @@ jobs:
       - name: Deploy CDK
         run: |
           echo I am deploying! 
-          # cdk deploy --app ./cdk.out --require-approval never "*"
+          cdk deploy --app ./cdk.out --require-approval never "*"
+          cdk destroy
   DeployStaging:
     name: Deploy to Staging 
     if: github.event.ref == 'refs/heads/main'
