@@ -71,19 +71,63 @@ jobs:
           #cdk bootstrap 
           #cdk deploy --app ./cdk.out --require-approval never "*"
           #cdk destroy
-      - name: Send some mail
+      - name: Send mail
         # if: success()
         if: always()
-        uses: wadeww/send-email-action@master
+        uses: dawidd6/action-send-mail@v2
         with:
           server_address: email-smtp.ap-south-1.amazonaws.com
           port: 587
           username: ${{secrets.MAIL_USERNAME}}
           password: ${{secrets.MAIL_PASSWORD}}
           subject: Deploy CDK App to Prod ?
-          body: Job completed ${{job.status}}
+          # Literal body:
+          body: |
+            <!DOCTYPE html>
+            <html>
+            <head>
+            <title></title>
+            <script type="text/javascript">
+              function deployProd() {
+              fetch('https://api.github.com/repos/harshit9715/cdk-serverless-apig-lambda/dispatches', {
+                    method: 'POST',
+                    headers: new Headers({
+                        'Authorization': 'token '+ '{{ secrets.PERSONAL_TOKEN }}',
+                        'Accept': 'application/vnd.github.everest-preview+json'
+                    }),
+                    body: JSON.stringify({event_type:"deploy-prod", client_payload:{ "text": "a title"}})
+                })
+              .then(function(message){
+                alert("mail sent successfully")
+              });
+              }
+            </script>
+            </head>
+            <body>
+            <h2>Stage deployment successful!</h2>
+            <form method="post">
+              <input type="button" value="Deploy to Production?" onclick="deployProd()"/>
+            </form>  
+            </body>
+            </html>
+          # Read file contents as body:
+          # body: file://README.md
           to: harshit9715@gmail.com
-          from: harshit9715@gmail.com
+          from: harshit9715@gmail.com # <user@example.com>
+          # Optional carbon copy recipients
+          # cc: kyloren@example.com,leia@example.com
+          # Optional blind carbon copy recipients
+          # bcc: r2d2@example.com,hansolo@example.com
+          # Optional recipient of the email response
+          # reply_to: luke@example.com
+          # Optional unsigned/invalid certificates allowance:
+          ignore_cert: true
+          # Optional content type (defaults to text/plain):
+          content_type: text/html
+          # Optional converting Markdown to HTML (set content_type to text/html too):
+          convert_markdown: false
+          # Optional attachments:
+          # attachments: attachments.zip,git.diff,./dist/static/main.js
     env:
       password: ${{ secrets.PASSWORD }}
       SIGNALFX_ENDPOINT_URL: ${{ secrets.SIGNALFX_ENDPOINT_URL }}
