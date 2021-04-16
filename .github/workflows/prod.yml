@@ -1,7 +1,8 @@
 name: CI + CD
 
 on:
-  workflow_dispatch:
+  repository_dispatch:
+    types: deploy-prod
 
 jobs:
   DeployProd:
