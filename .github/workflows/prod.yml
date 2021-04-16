@@ -1,16 +1,14 @@
 name: CI + CD
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  DeployStage:
+  DeployProd:
+    needs: [DeployStage]
     runs-on: ubuntu-latest
-#     environment: 
-#       name: Staging
+    environment: 
+      name: prod
     steps:
       - uses: actions/checkout@v2
       
@@ -31,7 +29,6 @@ jobs:
       - name: Install NPM modules and Build project
         run: |
           npm i
-          rm -rf cdk.out
           npm run build
       
       - name: Install CDK
@@ -58,34 +55,20 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{secrets.AWS_REGION}}
-          role-to-assume: ${{secrets.AWS_ROLE_TO_ASSUME}}
-          role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
+          #role-to-assume: ${{secrets.AWS_ROLE_TO_ASSUME}}
+          #role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
           role-duration-seconds: 1200
           role-session-name: ec2-cdk-session
         
       - name: Deploy CDK
-        run: | 
+        run: |
           npm i
           rm -rf cdk.out
           npm run build
           cdk bootstrap 
           cdk deploy --app ./cdk.out --require-approval never "*"
           #cdk destroy
-      - name: Send some mail
-        # if: success()
-        if: always()
-        uses: wadeww/send-email-action@master
-        with:
-          server_address: email-smtp.ap-south-1.amazonaws.com
-          port: 587
-          username: ${{secrets.MAIL_USERNAME}}
-          password: ${{secrets.MAIL_PASSWORD}}
-          subject: Deploy CDK App to Prod ?
-          body: Job completed ${{job.status}}
-          to: harshit9715@gmail.com
-          from: Me
     env:
-      password: ${{ secrets.PASSWORD }}
       SIGNALFX_ENDPOINT_URL: ${{ secrets.SIGNALFX_ENDPOINT_URL }}
       SIGNALFX_METRICS_URL: ${{ secrets.SIGNALFX_METRICS_URL }}
       SIGNALFX_ACCESS_TOKEN: ${{ secrets.SIGNALFX_ACCESS_TOKEN }}
