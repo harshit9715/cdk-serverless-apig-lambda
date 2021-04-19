@@ -1,7 +1,6 @@
 # CDK Serverless sample app
 
 ![Stage build status](https://github.com/harshit9715/cdk-serverless-apig-lambda/actions/workflows/CICD.yml/badge.svg "GitHub Actions Build Status")
-![Production build status](https://github.com/harshit9715/cdk-serverless-apig-lambda/actions/workflows/main.yml/badge.svg "GitHub Actions Build Status")
 
 ## Install CDK
 
