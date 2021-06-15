@@ -2,14 +2,15 @@ name: CI + CD
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
-  workflow_dispatch:
+    branches: [ main ]
 
 jobs:
-  Build:
+  DeployStage:
     runs-on: ubuntu-latest
+#     environment: 
+#       name: Staging
     steps:
       - uses: actions/checkout@v2
       
@@ -30,8 +31,8 @@ jobs:
       - name: Install NPM modules and Build project
         run: |
           npm i
+          rm -rf cdk.out
           npm run build
-          ls -la
       
       - name: Install CDK
         run: sudo npm install -g aws-cdk
@@ -42,7 +43,6 @@ jobs:
       # some errors won’t be apparent until you try to synthesize them.
       - name: CDK synth
         run: |
-          ls -la
           cdk synth
           
       - uses: actions/upload-artifact@v2
@@ -51,20 +51,6 @@ jobs:
           path: cdk.out
           retention-days: 5
 
-  DeployDev:
-    name: Deploy to Dev 
-    if: github.event_name == 'pull_request'
-    needs: [Build]
-    runs-on: ubuntu-latest
-    environment: 
-      name: Development
-      url: 'http://dev.myapp.com'
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
-        with:
-          name: cdk-artifact
-          path: cdk.out
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -76,66 +62,75 @@ jobs:
           role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
           role-duration-seconds: 1200
           role-session-name: ec2-cdk-session
-      
-      - name: Install CDK
-        run: sudo npm install -g aws-cdk
         
       - name: Deploy CDK
-        run: |
-          echo I am deploying! 
-          # cdk deploy --app ./cdk.out --require-approval never "*"
-  DeployStaging:
-    name: Deploy to Staging 
-    if: github.event.ref == 'refs/heads/main'
-    needs: [Build]
-    runs-on: ubuntu-latest
-    environment: 
-      name: Staging
-      url: 'http://test.myapp.com'
-    steps:
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        run: | 
+          npm i
+          rm -rf cdk.out
+          npm run build
+          #cdk bootstrap 
+          #cdk deploy --app ./cdk.out --require-approval never "*"
+          #cdk destroy
+      - name: Send mail
+        # if: success()
+        if: always()
+        uses: dawidd6/action-send-mail@v2
         with:
-          role-skip-session-tagging: true
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{secrets.AWS_REGION}}
-          role-to-assume: ${{secrets.AWS_ROLE_TO_ASSUME}}
-          # role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
-          role-duration-seconds: 1200
-          role-session-name: ec2-cdk-session
-      
-      - name: Install CDK
-        run: npm install -g aws-cdk
-      - name: Deploy CDK
-        run: |
-          cdk bootstrap
-          echo I am deploying! 
-          # cdk deploy --app ./cdk.out --require-approval never "*"
-            
-  DeployProd:
-    name: Deploy to Production 
-    needs: [DeployStaging]
-    runs-on: ubuntu-latest
-    environment: 
-      name: Production
-      url: 'http://www.myapp.com'
-    steps:
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          role-skip-session-tagging: true
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{secrets.AWS_REGION}}
-          role-to-assume: ${{secrets.AWS_ROLE_TO_ASSUME}}
-          role-external-id: ${{ secrets.AWS_ROLE_EXTERNAL_ID }}
-          role-duration-seconds: 1200
-          role-session-name: ec2-cdk-session
-          
-      - name: Install CDK
-        run: npm install -g aws-cdk
-      - name: Deploy CDK
-        run: |
-          echo I am deploying! 
-          # cdk deploy --app ./cdk.out --require-approval never "*"
+          server_address: email-smtp.ap-south-1.amazonaws.com
+          server_port: 587
+          username: ${{secrets.MAIL_USERNAME}}
+          password: ${{secrets.MAIL_PASSWORD}}
+          subject: Deploy CDK App to Prod ?
+          # Literal body:
+          body: |
+            <!DOCTYPE html>
+            <html>
+            <head>
+            <title></title>
+            <script type="text/javascript">
+              function deployProd() {
+              fetch('https://api.github.com/repos/harshit9715/cdk-serverless-apig-lambda/dispatches', {
+                    method: 'POST',
+                    headers: new Headers({
+                        'Authorization': 'token '+ '{{ secrets.PERSONAL_TOKEN }}',
+                        'Accept': 'application/vnd.github.everest-preview+json'
+                    }),
+                    body: JSON.stringify({event_type:"deploy-prod", client_payload:{ "text": "a title"}})
+                })
+              .then(function(message){
+                alert("mail sent successfully")
+              });
+              }
+            </script>
+            </head>
+            <body>
+            <h2>Stage deployment successful!</h2>
+            <form method="post">
+              <input type="button" value="Deploy to Production?" onclick="deployProd()"/>
+            </form>  
+            </body>
+            </html>
+          # Read file contents as body:
+          # body: file://README.md
+          to: harshit9715@gmail.com
+          from: 'Harshit Gupta <harshit.gupta@atmecs.com>'
+          # <user@example.com>
+          # Optional carbon copy recipients
+          # cc: kyloren@example.com,leia@example.com
+          # Optional blind carbon copy recipients
+          # bcc: r2d2@example.com,hansolo@example.com
+          # Optional recipient of the email response
+          # reply_to: luke@example.com
+          # Optional unsigned/invalid certificates allowance:
+          ignore_cert: true
+          # Optional content type (defaults to text/plain):
+          content_type: text/html
+          # Optional converting Markdown to HTML (set content_type to text/html too):
+          convert_markdown: false
+          # Optional attachments:
+          # attachments: attachments.zip,git.diff,./dist/static/main.js
+    env:
+      password: ${{ secrets.PASSWORD }}
+      SIGNALFX_ENDPOINT_URL: ${{ secrets.SIGNALFX_ENDPOINT_URL }}
+      SIGNALFX_METRICS_URL: ${{ secrets.SIGNALFX_METRICS_URL }}
+      SIGNALFX_ACCESS_TOKEN: ${{ secrets.SIGNALFX_ACCESS_TOKEN }}
